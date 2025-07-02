@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import sys
+import os
 from datetime import datetime
 from typing import Dict, Any
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
@@ -12,6 +13,9 @@ import uvicorn
 from llm_interface import LLMInterface
 from intent_parser import IntentParser
 from task_router import TaskRouter
+
+# Create logs directory if it doesn't exist
+os.makedirs('logs', exist_ok=True)
 
 # Configure logging
 logging.basicConfig(

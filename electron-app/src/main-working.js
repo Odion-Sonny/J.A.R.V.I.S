@@ -56,14 +56,27 @@ function createMainWindow() {
     });
 
     mainWindow.on('close', (event) => {
-        if (!isQuitting) {
-            event.preventDefault();
-            mainWindow.hide();
-        }
+        // Allow proper application quit when window is closed
+        console.log('Window close event triggered');
+        isQuitting = true;
+        cleanup();
+        // Don't prevent default - let the window close naturally
     });
 
     mainWindow.on('closed', () => {
+        console.log('Window closed event triggered');
         mainWindow = null;
+        // Ensure app quits when main window is closed
+        if (!app.isQuitting) {
+            console.log('Forcing app quit...');
+            app.quit();
+        }
+        
+        // Force exit if app doesn't quit gracefully
+        setTimeout(() => {
+            console.log('Force exiting process...');
+            process.exit(0);
+        }, 2000);
     });
 
     setupMenu();
@@ -326,12 +339,27 @@ function cleanup() {
     console.log('Cleaning up...');
     
     if (ws) {
+        console.log('Closing WebSocket connection...');
         ws.close();
+        ws = null;
     }
     
     if (pythonProcess) {
-        pythonProcess.kill();
+        console.log('Terminating Python backend process...');
+        pythonProcess.kill('SIGTERM'); // Use SIGTERM for graceful shutdown
+        
+        // Force kill after 5 seconds if still running
+        setTimeout(() => {
+            if (pythonProcess && !pythonProcess.killed) {
+                console.log('Force killing Python process...');
+                pythonProcess.kill('SIGKILL');
+            }
+        }, 5000);
+        
+        pythonProcess = null;
     }
+    
+    console.log('Cleanup completed');
 }
 
 // App event handlers
@@ -352,9 +380,11 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    // Quit app when all windows are closed (including on macOS)
+    console.log('All windows closed, quitting app...');
+    isQuitting = true;
+    cleanup();
+    app.quit();
 });
 
 app.on('activate', () => {

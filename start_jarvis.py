@@ -9,6 +9,7 @@ import sys
 import os
 import time
 import signal
+import platform
 from pathlib import Path
 
 class JarvisLauncher:
@@ -18,6 +19,8 @@ class JarvisLauncher:
         self.base_dir = Path(__file__).parent
         self.python_backend_dir = self.base_dir / "python-backend"
         self.electron_app_dir = self.base_dir / "electron-app"
+        # Windows compatibility for npm command
+        self.npm_cmd = "npm.cmd" if platform.system() == "Windows" else "npm"
     
     def check_dependencies(self):
         """Check if all dependencies are installed"""
@@ -41,10 +44,38 @@ class JarvisLauncher:
         if not (self.electron_app_dir / "node_modules").exists():
             print("📦 Installing Node.js dependencies...")
             subprocess.run([
-                "npm", "install"
+                self.npm_cmd, "install"
             ], cwd=self.electron_app_dir, check=True)
         else:
             print("✅ Node.js dependencies are installed")
+    
+    def initialize_ai_model(self):
+        """Pre-download and initialize the AI model"""
+        print("🧠 Initializing AI model...")
+        print("   This may take several minutes on first run to download the model...")
+        
+        try:
+            # Import here to avoid issues if gpt4all isn't installed yet
+            from gpt4all import GPT4All
+            
+            model_name = "orca-mini-3b-gguf2-q4_0.gguf"
+            print(f"   Downloading/loading model: {model_name}")
+            
+            # Create the model instance (this will download if needed)
+            model = GPT4All(model_name, allow_download=True)
+            
+            # Test the model with a simple prompt to ensure it's working
+            print("   Testing model...")
+            test_response = model.generate("Hello", max_tokens=10, temp=0.1)
+            
+            print("✅ AI model initialized successfully")
+            print(f"   Model test response: {test_response[:50]}...")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Failed to initialize AI model: {e}")
+            print("   You can set JARVIS_USE_MOCK=true to run without the AI model")
+            return False
     
     def start_python_backend(self):
         """Start the Python backend server"""
@@ -82,7 +113,7 @@ class JarvisLauncher:
         
         try:
             self.electron_process = subprocess.Popen([
-                "npm", "start"
+                self.npm_cmd, "start"
             ], cwd=self.electron_app_dir)
             
             print("✅ Electron frontend started successfully")
@@ -98,19 +129,44 @@ class JarvisLauncher:
         
         if self.electron_process:
             print("Stopping Electron frontend...")
-            self.electron_process.terminate()
-            try:
-                self.electron_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.electron_process.kill()
+            if self.electron_process.poll() is None:  # Still running
+                self.electron_process.terminate()
+                try:
+                    self.electron_process.wait(timeout=3)
+                    print("Electron process terminated gracefully")
+                except subprocess.TimeoutExpired:
+                    print("Force killing Electron process...")
+                    self.electron_process.kill()
+                    self.electron_process.wait()
+            else:
+                print("Electron process already terminated")
         
         if self.python_process:
             print("Stopping Python backend...")
-            self.python_process.terminate()
-            try:
-                self.python_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.python_process.kill()
+            if self.python_process.poll() is None:  # Still running
+                self.python_process.terminate()
+                try:
+                    self.python_process.wait(timeout=3)
+                    print("Python backend terminated gracefully")
+                except subprocess.TimeoutExpired:
+                    print("Force killing Python backend...")
+                    self.python_process.kill()
+                    self.python_process.wait()
+            else:
+                print("Python backend already terminated")
+        
+        # Additional cleanup - kill any remaining npm/electron processes
+        try:
+            if platform.system() == "Windows":
+                subprocess.run(["taskkill", "/F", "/IM", "electron.exe"], 
+                             capture_output=True, check=False)
+                subprocess.run(["taskkill", "/F", "/IM", "node.exe"], 
+                             capture_output=True, check=False)
+            else:
+                subprocess.run(["pkill", "-f", "electron"], capture_output=True, check=False)
+                subprocess.run(["pkill", "-f", "jarvis"], capture_output=True, check=False)
+        except Exception as e:
+            print(f"Additional cleanup failed: {e}")
         
         print("✅ Cleanup complete")
     
@@ -126,6 +182,16 @@ class JarvisLauncher:
             
             # Check dependencies
             self.check_dependencies()
+            
+            # Initialize AI model before starting services
+            if not self.initialize_ai_model():
+                print("❌ Failed to initialize AI model")
+                mock_env = os.getenv("JARVIS_USE_MOCK", "false").lower()
+                if mock_env != "true":
+                    print("💡 Tip: Set JARVIS_USE_MOCK=true to run without AI model")
+                    return 1
+                else:
+                    print("🔄 Continuing with mock mode...")
             
             # Start backend
             if not self.start_python_backend():
@@ -145,8 +211,26 @@ class JarvisLauncher:
             
             # Wait for Electron process to finish
             try:
-                self.electron_process.wait()
+                print("Waiting for Electron to close (or press Ctrl+C to force quit)...")
+                start_time = time.time()
+                timeout = 300  # 5 minutes max wait
+                
+                while True:
+                    # Check if Electron process is still running
+                    if self.electron_process.poll() is not None:
+                        print("Electron process has terminated")
+                        break
+                    
+                    # Check for timeout
+                    if time.time() - start_time > timeout:
+                        print("Timeout waiting for Electron to close, forcing shutdown...")
+                        break
+                    
+                    # Check every second
+                    time.sleep(1)
+                    
             except KeyboardInterrupt:
+                print("Received interrupt signal")
                 pass
             
             self.cleanup()

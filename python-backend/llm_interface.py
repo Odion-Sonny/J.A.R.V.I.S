@@ -1,12 +1,19 @@
 import json
 import logging
+import os
+import asyncio
+import signal
 from typing import Dict, Any
 from gpt4all import GPT4All
 
 class LLMInterface:
     def __init__(self, model_name: str = "orca-mini-3b-gguf2-q4_0.gguf"):
+        # Using a smaller, more reliable model (~2GB download)
+        # Alternative: "nous-hermes-llama2-13b.q4_0.bin" (smaller)
         self.model_name = model_name
         self.model = None
+        self.model_initialized = False
+        self.use_mock_responses = os.getenv("JARVIS_USE_MOCK", "false").lower() == "true"
         self.system_prompt = """You are JARVIS, a helpful AI assistant. You help users with various tasks.
 
 IMPORTANT: You must respond with ONLY a JSON object in this exact format:
@@ -34,19 +41,52 @@ Response: {"response": "I can help you create files, set reminders, open apps, a
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT."""
 
     async def initialize(self):
-        """Initialize the GPT4All model"""
+        """Initialize the GPT4All model (assumes model is already downloaded)"""
+        if self.model_initialized:
+            return True
+            
+        logging.info(f"Loading GPT4All model {self.model_name}...")
+        
         try:
-            self.model = GPT4All(self.model_name)
+            # Run the model initialization in a thread (should be fast now since model is pre-downloaded)
+            def init_model():
+                return GPT4All(self.model_name, allow_download=False)
+            
+            # Use asyncio to run in executor with shorter timeout since model should exist
+            loop = asyncio.get_event_loop()
+            self.model = await asyncio.wait_for(
+                loop.run_in_executor(None, init_model),
+                timeout=60.0  # 1 minute timeout for loading existing model
+            )
+            
+            self.model_initialized = True
             logging.info(f"GPT4All model {self.model_name} loaded successfully")
             return True
+            
+        except asyncio.TimeoutError:
+            logging.error("Model loading timed out after 1 minute")
+            self.model_initialized = False
+            return False
         except Exception as e:
             logging.error(f"Failed to load GPT4All model: {e}")
+            logging.error("Model may not be downloaded. Try running the startup script again.")
+            self.model_initialized = False
             return False
 
     async def generate_response(self, user_input: str, context: str = "") -> Dict[str, Any]:
         """Generate response from the LLM"""
-        if not self.model:
-            await self.initialize()
+        # Use mock responses if enabled (for testing without model download)
+        if self.use_mock_responses:
+            return self._generate_mock_response(user_input)
+            
+        if not self.model_initialized:
+            success = await self.initialize()
+            if not success:
+                return {
+                    "response": "I'm sorry, I'm having trouble initializing my AI model. You can try setting JARVIS_USE_MOCK=true for testing without the full model.",
+                    "action": None,
+                    "params": {}
+                }
         
         try:
             # Improved prompt with better structure
@@ -149,6 +189,47 @@ JARVIS:"""
             logging.error(f"Error generating response: {e}")
             return {
                 "response": "I'm sorry, I encountered an error processing your request.",
+                "action": None,
+                "params": {}
+            }
+    
+    def _generate_mock_response(self, user_input: str) -> Dict[str, Any]:
+        """Generate mock responses for testing without model download"""
+        user_lower = user_input.lower()
+        
+        if any(word in user_lower for word in ["create", "make", "write", "file", "document"]):
+            return {
+                "response": "I'll create a document for you using mock mode.",
+                "action": "create_document",
+                "params": {"name": "test_document.txt", "content": "This is a test document created in mock mode."}
+            }
+        elif any(word in user_lower for word in ["find", "search", "look"]):
+            return {
+                "response": "I'll search for files using mock mode.",
+                "action": "find_files", 
+                "params": {"extension": "txt", "folder": "."}
+            }
+        elif any(word in user_lower for word in ["alarm", "reminder", "remind"]):
+            return {
+                "response": "I'll set a reminder for you using mock mode.",
+                "action": "set_alarm",
+                "params": {"minutes": 5, "message": "Test reminder"}
+            }
+        elif any(word in user_lower for word in ["system", "info", "status"]):
+            return {
+                "response": "Here's your system information in mock mode.",
+                "action": "get_system_info",
+                "params": {}
+            }
+        elif any(word in user_lower for word in ["open", "launch", "start"]):
+            return {
+                "response": "I'll open an application for you using mock mode.",
+                "action": "open_app",
+                "params": {"app_name": "calculator"}
+            }
+        else:
+            return {
+                "response": f"I understand you said: '{user_input}'. I'm running in mock mode for testing. Try asking me to create a file, set a reminder, or get system info!",
                 "action": None,
                 "params": {}
             }
