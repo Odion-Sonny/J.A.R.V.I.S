@@ -1,0 +1,9 @@
+{
+  "ai_model": "orca-mini-3b-gguf2-q4_0.gguf",
+  "mock_mode": false,
+  "voice_enabled": true,
+  "backend_port": 8000,
+  "theme": "dark",
+  "auto_start": false,
+  "log_level": "INFO"
+}

@@ -17,6 +17,8 @@ class WorkingJarvisRenderer {
             
             this.setupWindowControls();
             this.setupChatInterface();
+            this.setupSidePanelTabs();
+            this.setupSettingsModal();
             this.setupBackendListeners();
             this.hideLoadingOverlay();
             this.showWelcomeMessage();
@@ -125,6 +127,67 @@ class WorkingJarvisRenderer {
                 this.handleQuickAction(action);
             });
         });
+    }
+
+    setupSidePanelTabs() {
+        // Setup tab buttons
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        tabButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.switchTab(btn.dataset.tab);
+            });
+        });
+    }
+
+    setupSettingsModal() {
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const closeSettings = document.getElementById('closeSettings');
+        const cancelSettings = document.getElementById('cancelSettings');
+        const applySettings = document.getElementById('applySettings');
+        const saveSettings = document.getElementById('saveSettings');
+
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => {
+                this.showSettingsModal();
+            });
+        }
+
+        if (closeSettings) {
+            closeSettings.addEventListener('click', () => {
+                this.hideSettingsModal();
+            });
+        }
+
+        if (cancelSettings) {
+            cancelSettings.addEventListener('click', () => {
+                this.hideSettingsModal();
+            });
+        }
+
+        if (applySettings) {
+            applySettings.addEventListener('click', () => {
+                this.applySettings();
+            });
+        }
+
+        if (saveSettings) {
+            saveSettings.addEventListener('click', () => {
+                this.saveAndCloseSettings();
+            });
+        }
+
+        // Close modal when clicking outside
+        if (settingsModal) {
+            settingsModal.addEventListener('click', (e) => {
+                if (e.target === settingsModal) {
+                    this.hideSettingsModal();
+                }
+            });
+        }
+
+        // Load initial settings
+        this.loadSettings();
     }
 
     setupBackendListeners() {
@@ -372,6 +435,328 @@ class WorkingJarvisRenderer {
         } catch (error) {
             console.error('Connection test failed:', error);
             return false;
+        }
+    }
+
+    // Tab switching functionality
+    switchTab(tabName) {
+        // Update tab buttons
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        tabButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+
+        // Update tab panels
+        const tabPanels = document.querySelectorAll('.tab-panel');
+        tabPanels.forEach(panel => {
+            panel.classList.toggle('active', panel.id === `${tabName}Panel`);
+        });
+
+        // Load specific content based on tab
+        if (tabName === 'history') {
+            this.loadHistoryPanel();
+        } else if (tabName === 'system') {
+            this.loadSystemPanel();
+        }
+    }
+
+    // Settings modal functions
+    showSettingsModal() {
+        const modal = document.getElementById('settingsModal');
+        if (modal) {
+            modal.classList.add('show');
+            this.loadSettings();
+        }
+    }
+
+    hideSettingsModal() {
+        const modal = document.getElementById('settingsModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    loadSettings() {
+        // Load current theme
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        const themeSelect = document.getElementById('themeSelect');
+        if (themeSelect) {
+            themeSelect.value = currentTheme;
+        }
+
+        // Load voice settings
+        const voiceEnabled = localStorage.getItem('jarvis-voice-enabled') !== 'false';
+        const voiceEnabledCheck = document.getElementById('voiceEnabledCheck');
+        if (voiceEnabledCheck) {
+            voiceEnabledCheck.checked = voiceEnabled;
+        }
+
+        // Load auto-start setting
+        const autoStart = localStorage.getItem('jarvis-auto-start') === 'true';
+        const autoStartCheck = document.getElementById('autoStartCheck');
+        if (autoStartCheck) {
+            autoStartCheck.checked = autoStart;
+        }
+
+        // Load backend port
+        const backendPort = localStorage.getItem('jarvis-backend-port') || '8000';
+        const pythonPortInput = document.getElementById('pythonPortInput');
+        if (pythonPortInput) {
+            pythonPortInput.value = backendPort;
+        }
+
+        // Load AI model settings
+        const selectedModel = localStorage.getItem('jarvis-ai-model') || 'orca-mini-3b-gguf2-q4_0.gguf';
+        const modelSelect = document.getElementById('modelSelect');
+        if (modelSelect) {
+            modelSelect.value = selectedModel;
+        }
+
+        // Load mock mode setting
+        const mockMode = localStorage.getItem('jarvis-mock-mode') === 'true';
+        const enableMockCheck = document.getElementById('enableMockCheck');
+        if (enableMockCheck) {
+            enableMockCheck.checked = mockMode;
+        }
+    }
+
+    async saveSettings() {
+        try {
+            // Get all settings values
+            const themeSelect = document.getElementById('themeSelect');
+            const voiceEnabledCheck = document.getElementById('voiceEnabledCheck');
+            const autoStartCheck = document.getElementById('autoStartCheck');
+            const pythonPortInput = document.getElementById('pythonPortInput');
+            const modelSelect = document.getElementById('modelSelect');
+            const enableMockCheck = document.getElementById('enableMockCheck');
+
+            // Create settings object for frontend storage
+            const frontendSettings = {
+                'jarvis-theme': themeSelect?.value || 'light',
+                'jarvis-voice-enabled': voiceEnabledCheck?.checked !== false,
+                'jarvis-auto-start': autoStartCheck?.checked === true,
+                'jarvis-backend-port': pythonPortInput?.value || '8000',
+                'jarvis-ai-model': modelSelect?.value || 'orca-mini-3b-gguf2-q4_0.gguf',
+                'jarvis-mock-mode': enableMockCheck?.checked === true
+            };
+
+            // Save to localStorage
+            Object.entries(frontendSettings).forEach(([key, value]) => {
+                localStorage.setItem(key, value);
+            });
+
+            // Apply theme immediately
+            if (themeSelect) {
+                this.setTheme(themeSelect.value);
+            }
+
+            // Send settings to backend if connected
+            if (this.backendConnected) {
+                try {
+                    const response = await this.sendSettingsToBackend(frontendSettings);
+                    if (response && response.success) {
+                        this.hideSettingsModal();
+                        this.addMessage('Settings saved successfully! AI model changes will take effect immediately.', 'ai');
+                    } else {
+                        this.hideSettingsModal();
+                        this.addMessage('Settings saved to frontend, but could not sync with backend. Changes will apply on restart.', 'ai');
+                    }
+                } catch (error) {
+                    console.error('Error sending settings to backend:', error);
+                    this.hideSettingsModal();
+                    this.addMessage('Settings saved locally. Restart application for full effect.', 'ai');
+                }
+            } else {
+                this.hideSettingsModal();
+                this.addMessage('Settings saved! Backend not connected - changes will apply when backend starts.', 'ai');
+            }
+
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            this.addMessage('Error saving settings. Please try again.', 'ai');
+        }
+    }
+
+    async applySettings() {
+        await this.saveSettingsInternal(false); // Don't close modal
+    }
+
+    async saveAndCloseSettings() {
+        await this.saveSettingsInternal(true); // Close modal
+    }
+
+    async saveSettingsInternal(closeModal = true) {
+        try {
+            // Get all settings values
+            const themeSelect = document.getElementById('themeSelect');
+            const voiceEnabledCheck = document.getElementById('voiceEnabledCheck');
+            const autoStartCheck = document.getElementById('autoStartCheck');
+            const pythonPortInput = document.getElementById('pythonPortInput');
+            const modelSelect = document.getElementById('modelSelect');
+            const enableMockCheck = document.getElementById('enableMockCheck');
+
+            // Create settings object for frontend storage
+            const frontendSettings = {
+                'jarvis-theme': themeSelect?.value || 'light',
+                'jarvis-voice-enabled': voiceEnabledCheck?.checked !== false,
+                'jarvis-auto-start': autoStartCheck?.checked === true,
+                'jarvis-backend-port': pythonPortInput?.value || '8000',
+                'jarvis-ai-model': modelSelect?.value || 'orca-mini-3b-gguf2-q4_0.gguf',
+                'jarvis-mock-mode': enableMockCheck?.checked === true
+            };
+
+            // Save to localStorage
+            Object.entries(frontendSettings).forEach(([key, value]) => {
+                localStorage.setItem(key, value);
+            });
+
+            // Apply theme immediately
+            if (themeSelect) {
+                this.setTheme(themeSelect.value);
+            }
+
+            // Send settings to backend if connected
+            if (this.backendConnected) {
+                try {
+                    const response = await this.sendSettingsToBackend(frontendSettings);
+                    if (response && response.success) {
+                        if (closeModal) this.hideSettingsModal();
+                        this.addMessage('Settings applied successfully! AI model changes will take effect immediately.', 'ai');
+                    } else {
+                        if (closeModal) this.hideSettingsModal();
+                        this.addMessage('Settings saved to frontend, but could not sync with backend. Changes will apply on restart.', 'ai');
+                    }
+                } catch (error) {
+                    console.error('Error sending settings to backend:', error);
+                    if (closeModal) this.hideSettingsModal();
+                    this.addMessage('Settings saved locally. Restart application for full effect.', 'ai');
+                }
+            } else {
+                if (closeModal) this.hideSettingsModal();
+                this.addMessage('Settings saved! Backend not connected - changes will apply when backend starts.', 'ai');
+            }
+
+        } catch (error) {
+            console.error('Error saving settings:', error);
+            this.addMessage('Error saving settings. Please try again.', 'ai');
+        }
+    }
+
+    async sendSettingsToBackend(frontendSettings) {
+        try {
+            const response = await ipcRenderer.invoke('send-backend-request', {
+                url: '/settings',
+                method: 'POST',
+                data: frontendSettings
+            });
+            return response;
+        } catch (error) {
+            console.error('Error sending settings to backend:', error);
+            return null;
+        }
+    }
+
+    // History panel functionality
+    loadHistoryPanel() {
+        const historyList = document.getElementById('historyList');
+        if (!historyList) return;
+
+        try {
+            const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            
+            if (history.length === 0) {
+                historyList.innerHTML = '<div class="empty-state">No conversation history yet.</div>';
+                return;
+            }
+
+            historyList.innerHTML = history.slice(0, 10).map((item, index) => `
+                <div class="history-item" onclick="window.jarvisRenderer.loadHistoryItem(${index})">
+                    <div class="history-preview">${item.userMessage || 'Conversation'}</div>
+                    <div class="history-time">${new Date(item.timestamp).toLocaleDateString()}</div>
+                </div>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading history:', error);
+            historyList.innerHTML = '<div class="error-state">Error loading history.</div>';
+        }
+    }
+
+    loadHistoryItem(index) {
+        try {
+            const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            const item = history[index];
+            if (item) {
+                this.addMessage(item.userMessage, 'user');
+                this.addMessage(item.aiResponse, 'ai');
+            }
+        } catch (error) {
+            console.error('Error loading history item:', error);
+        }
+    }
+
+    // System panel functionality
+    async loadSystemPanel() {
+        const systemInfo = document.getElementById('systemInfo');
+        if (!systemInfo) return;
+
+        try {
+            // Update backend status
+            await this.checkBackendStatus();
+
+            // Add system metrics
+            const systemMetrics = `
+                <div class="system-item">
+                    <span class="system-label">Backend Status:</span>
+                    <span class="system-value" id="backendStatus">${this.backendConnected ? 'Connected' : 'Disconnected'}</span>
+                </div>
+                <div class="system-item">
+                    <span class="system-label">Voice Status:</span>
+                    <span class="system-value" id="voiceStatus">${localStorage.getItem('jarvis-voice-enabled') !== 'false' ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                <div class="system-item">
+                    <span class="system-label">Theme:</span>
+                    <span class="system-value">${document.documentElement.getAttribute('data-theme') || 'light'}</span>
+                </div>
+                <div class="system-item">
+                    <span class="system-label">Messages Sent:</span>
+                    <span class="system-value">${this.messageHistory.length}</span>
+                </div>
+                <div class="system-actions">
+                    <button class="btn secondary" onclick="window.jarvisRenderer.clearHistory()">Clear History</button>
+                    <button class="btn secondary" onclick="window.jarvisRenderer.exportHistory()">Export History</button>
+                </div>
+            `;
+            
+            systemInfo.innerHTML = systemMetrics;
+        } catch (error) {
+            console.error('Error loading system panel:', error);
+        }
+    }
+
+    clearHistory() {
+        if (confirm('Are you sure you want to clear all chat history?')) {
+            localStorage.removeItem('chatHistory');
+            this.messageHistory = [];
+            this.addMessage('Chat history cleared successfully!', 'ai');
+            this.loadHistoryPanel();
+        }
+    }
+
+    exportHistory() {
+        try {
+            const history = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+            const dataStr = JSON.stringify(history, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `jarvis-history-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            this.addMessage('Chat history exported successfully!', 'ai');
+        } catch (error) {
+            console.error('Error exporting history:', error);
+            this.addMessage('Failed to export chat history.', 'ai');
         }
     }
 }

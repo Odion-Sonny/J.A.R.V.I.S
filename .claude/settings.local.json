@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(where npm)"
+      "Bash(where npm)",
+      "Bash(npm install)",
+      "Bash(rg:*)",
+      "Bash(grep -n -A 5 -B 5 \"actions\\|tab-btn\" /mnt/c/Users/najib/Documents/J.A.R.V.I.S/electron-app/src/renderer.html)"
     ],
     "deny": []
   }

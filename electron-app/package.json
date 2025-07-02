@@ -47,7 +47,8 @@
   },
   "dependencies": {
     "electron-store": "^8.1.0",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "node-fetch": "^2.7.0"
   },
   "build": {
     "appId": "com.jarvis.ai-assistant",

@@ -13,6 +13,7 @@ import uvicorn
 from llm_interface import LLMInterface
 from intent_parser import IntentParser
 from task_router import TaskRouter
+from settings_manager import settings
 
 # Create logs directory if it doesn't exist
 os.makedirs('logs', exist_ok=True)
@@ -181,6 +182,80 @@ async def action_endpoint(request: ActionRequest):
 async def get_actions():
     """Get list of available actions"""
     return router.get_available_actions()
+
+@app.get("/settings")
+async def get_settings():
+    """Get current settings"""
+    try:
+        return {
+            "success": True,
+            "settings": settings.settings,
+            "timestamp": datetime.now().isoformat()
+        }
+    except Exception as e:
+        logging.error(f"Error getting settings: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.post("/settings")
+async def update_settings(request: dict):
+    """Update settings from frontend"""
+    try:
+        # Update settings from frontend format
+        success = settings.update_from_frontend(request)
+        
+        if success:
+            # Reload LLM interface settings
+            await llm.reload_settings()
+            
+            return {
+                "success": True,
+                "message": "Settings updated successfully",
+                "settings": settings.settings,
+                "timestamp": datetime.now().isoformat()
+            }
+        else:
+            return {
+                "success": False,
+                "error": "Failed to update settings",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+    except Exception as e:
+        logging.error(f"Error updating settings: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
+
+@app.post("/settings/reload")
+async def reload_settings():
+    """Reload settings and reinitialize components"""
+    try:
+        # Reload settings
+        settings.load_settings()
+        
+        # Reload LLM interface
+        await llm.reload_settings()
+        
+        return {
+            "success": True,
+            "message": "Settings reloaded successfully",
+            "settings": settings.settings,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+    except Exception as e:
+        logging.error(f"Error reloading settings: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "timestamp": datetime.now().isoformat()
+        }
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):

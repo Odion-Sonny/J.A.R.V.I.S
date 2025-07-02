@@ -5,15 +5,15 @@ import asyncio
 import signal
 from typing import Dict, Any
 from gpt4all import GPT4All
+from settings_manager import settings
 
 class LLMInterface:
-    def __init__(self, model_name: str = "orca-mini-3b-gguf2-q4_0.gguf"):
-        # Using a smaller, more reliable model (~2GB download)
-        # Alternative: "nous-hermes-llama2-13b.q4_0.bin" (smaller)
-        self.model_name = model_name
+    def __init__(self, model_name: str = None):
+        # Get model from settings, fallback to parameter or default
+        self.model_name = model_name or settings.get_ai_model()
         self.model = None
         self.model_initialized = False
-        self.use_mock_responses = os.getenv("JARVIS_USE_MOCK", "false").lower() == "true"
+        self.use_mock_responses = settings.is_mock_mode()
         self.system_prompt = """You are JARVIS, a helpful AI assistant. You help users with various tasks.
 
 IMPORTANT: You must respond with ONLY a JSON object in this exact format:
@@ -40,9 +40,38 @@ Response: {"response": "I can help you create files, set reminders, open apps, a
 
 RESPOND ONLY WITH THE JSON OBJECT - NO OTHER TEXT."""
 
+    async def reload_settings(self):
+        """Reload settings and reinitialize model if needed"""
+        old_model_name = self.model_name
+        old_mock_mode = self.use_mock_responses
+        
+        # Reload settings
+        settings.load_settings()
+        new_model_name = settings.get_ai_model()
+        new_mock_mode = settings.is_mock_mode()
+        
+        # Check if model or mock mode changed
+        if (old_model_name != new_model_name or old_mock_mode != new_mock_mode):
+            logging.info(f"Settings changed: model {old_model_name} -> {new_model_name}, mock {old_mock_mode} -> {new_mock_mode}")
+            
+            self.model_name = new_model_name
+            self.use_mock_responses = new_mock_mode
+            
+            # Reset model if we're switching to/from mock mode or different model
+            if old_mock_mode != new_mock_mode or old_model_name != new_model_name:
+                self.model = None
+                self.model_initialized = False
+                logging.info("Model will be reinitialized on next request")
+
     async def initialize(self):
         """Initialize the GPT4All model (assumes model is already downloaded)"""
         if self.model_initialized:
+            return True
+            
+        # Check if we should use mock mode
+        if self.use_mock_responses:
+            logging.info("Using mock mode - no model initialization needed")
+            self.model_initialized = True
             return True
             
         logging.info(f"Loading GPT4All model {self.model_name}...")

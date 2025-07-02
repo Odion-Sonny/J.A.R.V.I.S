@@ -998,6 +998,47 @@ body {
     }
 }
 
+/* Empty and Error States */
+.empty-state, .error-state {
+    text-align: center;
+    padding: var(--space-xl);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+.error-state {
+    color: var(--accent-error);
+}
+
+/* System Actions */
+.system-actions {
+    margin-top: var(--space-lg);
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+}
+
+.system-actions .btn {
+    font-size: 0.675rem;
+    padding: var(--space-xs) var(--space-sm);
+}
+
+/* History Item Styling */
+.history-preview {
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    margin-bottom: var(--space-xs);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-time {
+    font-size: 0.625rem;
+    color: var(--text-muted);
+}
+
 @keyframes spin {
     to {
         transform: rotate(360deg);

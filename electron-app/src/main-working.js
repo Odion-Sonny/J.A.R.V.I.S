@@ -335,6 +335,77 @@ async function sendToPython(message) {
     });
 }
 
+function setupIPC() {
+    const { ipcMain } = require('electron');
+
+    // Handle message sending to backend
+    ipcMain.handle('send-message', async (event, message) => {
+        try {
+            return await sendToPython(message);
+        } catch (error) {
+            console.error('Error sending message to Python:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    });
+
+    // Handle backend status requests
+    ipcMain.handle('get-backend-status', (event) => {
+        return {
+            connected: ws && ws.readyState === WebSocket.OPEN,
+            pythonRunning: pythonProcess && !pythonProcess.killed,
+            port: currentPort
+        };
+    });
+
+    // Handle backend HTTP requests (for settings)
+    ipcMain.handle('send-backend-request', async (event, request) => {
+        try {
+            const fetch = require('node-fetch');
+            const url = `http://127.0.0.1:${currentPort}${request.url}`;
+            
+            const response = await fetch(url, {
+                method: request.method || 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: request.data ? JSON.stringify(request.data) : undefined
+            });
+
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error sending backend request:', error);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    });
+
+    // Window controls
+    ipcMain.handle('window-minimize', (event) => {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        window?.minimize();
+    });
+
+    ipcMain.handle('window-maximize', (event) => {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        if (window?.isMaximized()) {
+            window.unmaximize();
+        } else {
+            window?.maximize();
+        }
+    });
+
+    ipcMain.handle('window-close', (event) => {
+        const window = BrowserWindow.fromWebContents(event.sender);
+        window?.close();
+    });
+}
+
 function cleanup() {
     console.log('Cleaning up...');
     
