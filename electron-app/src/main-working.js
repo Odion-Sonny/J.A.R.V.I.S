@@ -29,8 +29,8 @@ function createMainWindow() {
         height: 800,
         minWidth: 800,
         minHeight: 600,
-        frame: false,
-        titleBarStyle: 'hiddenInset',
+        frame: process.platform !== 'darwin',
+        titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
         backgroundColor: '#0a0a0a',
         webPreferences: {
             nodeIntegration: true,

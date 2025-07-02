@@ -32,6 +32,14 @@ class WorkingJarvisRenderer {
     }
 
     setupWindowControls() {
+        // Detect platform and adjust title bar layout for macOS
+        const titleBar = document.getElementById('titleBar');
+        const isMacOS = navigator.platform.toLowerCase().includes('mac');
+        
+        if (isMacOS && titleBar) {
+            titleBar.classList.add('macos');
+        }
+
         const minimizeBtn = document.getElementById('minimizeBtn');
         const maximizeBtn = document.getElementById('maximizeBtn');
         const closeBtn = document.getElementById('closeBtn');
