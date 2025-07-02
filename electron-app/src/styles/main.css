@@ -133,10 +133,45 @@ body {
     z-index: 50;
 }
 
+/* macOS specific styling */
+.title-bar.macos {
+    padding-left: 4.5rem; /* Account for native macOS controls */
+    justify-content: center;
+}
+
+.title-bar.macos .title-bar-left {
+    display: none;
+}
+
+.title-bar.macos .title-bar-center {
+    display: flex !important;
+    align-items: center;
+    gap: var(--space-md);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.title-bar.macos .window-controls {
+    display: none;
+}
+
 .title-bar-left {
     display: flex;
     align-items: center;
     gap: var(--space-md);
+}
+
+.title-bar-center {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+}
+
+.window-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
 }
 
 .app-icon {
