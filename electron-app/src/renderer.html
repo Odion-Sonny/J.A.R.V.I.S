@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JARVIS AI Assistant</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- Custom Title Bar -->
+        <div class="title-bar">
+            <div class="title-bar-left">
+                <div class="app-icon">J</div>
+                <span class="app-title">JARVIS</span>
+                <div class="status-indicator" id="statusIndicator">
+                    <span class="status-dot"></span>
+                    <span class="status-text">Initializing...</span>
+                </div>
+            </div>
+            <div class="title-bar-right">
+                <button class="theme-toggle" id="themeToggle" title="Toggle Theme">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="sun-icon">
+                        <path d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.52,9.22 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.21C5.26,14 5.53,14.78 5.95,15.5C6.37,16.22 6.91,16.84 7.51,17.35L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.22 18.05,8.5C17.63,7.78 17.09,7.15 16.49,6.65L20.65,7M20.64,17L16.5,17.35C17.1,16.84 17.64,16.22 18.06,15.5C18.48,14.78 18.75,14 18.89,13.21L20.64,17M12,22L9.61,18.58C10.35,18.85 11.16,19 12,19C12.84,19 13.65,18.85 14.39,18.58L12,22Z"/>
+                    </svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="moon-icon" style="display: none;">
+                        <path d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.4 6.35,17.41C9.37,20.43 14,20.54 17.33,17.97Z"/>
+                    </svg>
+                </button>
+                <button class="title-button" id="settingsBtn" title="Settings">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.22,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.22,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.68 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z"/>
+                    </svg>
+                </button>
+                <button class="title-button" id="minimizeBtn" title="Minimize">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20,14H4V10H20"/>
+                    </svg>
+                </button>
+                <button class="title-button" id="maximizeBtn" title="Maximize">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M4,4H20V20H4V4M6,8V18H18V8H6Z"/>
+                    </svg>
+                </button>
+                <button class="title-button close" id="closeBtn" title="Close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Chat Interface -->
+            <div class="chat-container">
+                <div class="chat-header">
+                    <div class="ai-avatar">
+                        <div class="avatar-glow"></div>
+                        <div class="avatar-core">J</div>
+                    </div>
+                    <div class="ai-info">
+                        <h2>JARVIS</h2>
+                        <p>Your Personal AI Assistant</p>
+                    </div>
+                    <div class="voice-controls">
+                        <button class="voice-btn" id="voiceToggle" title="Toggle Voice">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message ai-message">
+                        <div class="message-avatar">
+                            <div class="avatar-mini">J</div>
+                        </div>
+                        <div class="message-content">
+                            <div class="message-text">
+                                Hello! I'm JARVIS, your personal AI assistant. I can help you with file management, system tasks, setting reminders, and much more. How can I assist you today?
+                            </div>
+                            <div class="message-time">Just now</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <div class="input-wrapper">
+                        <input type="text" id="messageInput" placeholder="Ask JARVIS anything..." maxlength="1000">
+                        <div class="input-actions">
+                            <button class="input-btn" id="listenBtn" title="Voice Input">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,2A3,3 0 0,1 15,5V11A3,3 0 0,1 12,14A3,3 0 0,1 9,11V5A3,3 0 0,1 12,2M19,11C19,14.53 16.39,17.44 13,17.93V21H11V17.93C7.61,17.44 5,14.53 5,11H7A5,5 0 0,0 12,16A5,5 0 0,0 17,11H19Z"/>
+                                </svg>
+                            </button>
+                            <button class="input-btn send" id="sendBtn" title="Send Message">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M2,21L23,12L2,3V10L17,12L2,14V21Z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="typing-indicator" id="typingIndicator">
+                        <div class="typing-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+                        <span class="typing-text">JARVIS is thinking...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side Panel -->
+            <div class="side-panel" id="sidePanel">
+                <div class="panel-tabs">
+                    <button class="tab-btn active" data-tab="history">History</button>
+                    <button class="tab-btn" data-tab="actions">Actions</button>
+                    <button class="tab-btn" data-tab="system">System</button>
+                </div>
+
+                <div class="panel-content">
+                    <div class="tab-panel active" id="historyPanel">
+                        <h3>Recent Conversations</h3>
+                        <div class="history-list" id="historyList">
+                            <!-- History items will be populated here -->
+                        </div>
+                    </div>
+
+                    <div class="tab-panel" id="actionsPanel">
+                        <h3>Quick Actions</h3>
+                        <div class="action-grid">
+                            <button class="action-card" data-action="create_document">
+                                <div class="action-icon">📄</div>
+                                <div class="action-title">Create Document</div>
+                                <div class="action-desc">Create a new text file</div>
+                            </button>
+                            <button class="action-card" data-action="find_files">
+                                <div class="action-icon">🔍</div>
+                                <div class="action-title">Find Files</div>
+                                <div class="action-desc">Search for files</div>
+                            </button>
+                            <button class="action-card" data-action="set_alarm">
+                                <div class="action-icon">⏰</div>
+                                <div class="action-title">Set Reminder</div>
+                                <div class="action-desc">Create an alarm</div>
+                            </button>
+                            <button class="action-card" data-action="get_system_info">
+                                <div class="action-icon">💻</div>
+                                <div class="action-title">System Info</div>
+                                <div class="action-desc">View system status</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="tab-panel" id="systemPanel">
+                        <h3>System Status</h3>
+                        <div class="system-info" id="systemInfo">
+                            <div class="system-item">
+                                <span class="system-label">Backend Status:</span>
+                                <span class="system-value" id="backendStatus">Connecting...</span>
+                            </div>
+                            <div class="system-item">
+                                <span class="system-label">Voice Status:</span>
+                                <span class="system-value" id="voiceStatus">Enabled</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div class="modal" id="settingsModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Settings</h2>
+                    <button class="modal-close" id="closeSettings">×</button>
+                </div>
+                <div class="modal-body">
+                    <div class="settings-section">
+                        <h3>Appearance</h3>
+                        <div class="setting-item">
+                            <label for="themeSelect">Theme:</label>
+                            <select id="themeSelect">
+                                <option value="dark">Dark (Default)</option>
+                                <option value="light">Light</option>
+                                <option value="blue">Tech Blue</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>Voice</h3>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="voiceEnabledCheck"> Enable Voice Features
+                            </label>
+                        </div>
+                    </div>
+                    <div class="settings-section">
+                        <h3>System</h3>
+                        <div class="setting-item">
+                            <label>
+                                <input type="checkbox" id="autoStartCheck"> Start with System
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="pythonPortInput">Backend Port:</label>
+                            <input type="number" id="pythonPortInput" min="1024" max="65535" value="8000">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn secondary" id="cancelSettings">Cancel</button>
+                    <button class="btn primary" id="saveSettings">Save Settings</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+            </div>
+            <div class="loading-text">Initializing JARVIS...</div>
+        </div>
+    </div>
+
+    <script src="renderer-working.js"></script>
+</body>
+</html>
