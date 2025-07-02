@@ -44,13 +44,6 @@ A futuristic cross-platform AI assistant built with ElectronJS and GPT4All, feat
 
 ### Installation & Running
 
-#### 🚀 **Quick Start (Recommended)**
-```bash
-cd /Users/najiboladosu/Documents/JARVIS
-python3 start_jarvis_quick.py
-```
-This launches the beautiful interface immediately while the AI backend loads in the background.
-
 #### 🔧 **Full Setup**
 ```bash
 python3 start_jarvis.py
